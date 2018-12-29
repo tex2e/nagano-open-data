@@ -56,7 +56,7 @@
         var marker = pointMarker(map, latlng);
         attachMessage(marker, contentToString(facility));
       });
-  });
+  };
 
   // init google map
   function initMap() {
