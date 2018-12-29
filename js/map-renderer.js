@@ -3,9 +3,14 @@
 (function () {
     // --- show google map ---
 
+    window.googleMarkerFilter = function(value, key) {
+        return true;
+    }
+
     $(window).load(function () {
         var map = initMap();
         _.chain(window.facilities)
+            .pick(window.googleMarkerFilter)
             .each(function (facility) {
                 var latlng = new google.maps.LatLng(facility.lat, facility.lng);
                 var marker = pointMarker(map, latlng);

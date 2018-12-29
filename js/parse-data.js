@@ -2,7 +2,7 @@
 
 (function () {
     // --- parse csv ---
-    
+
     window.facilities = [];
 
     $(document).ready(function () {
@@ -22,7 +22,7 @@
 
                 window.facilities = csvObjects;
             }
-         });
+        });
     });
 
     // convert csv into array
