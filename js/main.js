@@ -3,57 +3,60 @@
 (function () {
   // --- parse csv ---
 
-  window.facilities = [];
+  var facilities = []; // 施設一覧
+  var facilityInfoWindows = []; // 施設情報ウィンドウの一覧
 
-  $(document).ready(function () {
-    $.ajax({
-      type: "GET",
-      url: "data/child-facilities.csv",
-      dataType: "text",
-      success: function(csvStr) {
-        var csvArray   = csvToArray(csvStr);
-        var labels     = _.first(csvArray);
-        var contents   = _.rest(csvArray);
+  $.ajax({
+    type: "GET",
+    url: "data/child-facilities.csv",
+    dataType: "text",
+    success: function(csvStr) {
+
+      $(document).ready(function () {
+        // Convert CSV to JSON object
+        var csvArray = csvToArray(csvStr);
+        var labels = csvArray[0];
+        var contents = csvArray.slice(1, csvArray.length)
         var csvObjects = [];
-
         contents.forEach(function (data) {
-          csvObjects.push(_.object(labels, data));
+          var obj = {};
+          for (let i = 0; i < labels.length; i++) {
+            obj[labels[i]] = data[i]
+          }
+          csvObjects.push(obj);
         });
 
-        window.facilities = csvObjects;
+        facilities = csvObjects;
+        // window.facilities = facilities; // DEBUG!!
         draw();
-      }
-    });
+      });
+
+    }
   });
 
   // convert csv into array
   function csvToArray(csvStr) {
     var csvArray = csvStr
-      .split(/\r\n|\n/)
-      .filter(function (line) {
-        return line !== "";
-      })
-      .map(function (line) {
-        return line.split(',');
-      });
+      .split(/\r?\n/)
+      .filter(function (line) { return line !== ""; })
+      .map(function (line) { return line.split(","); });
     return csvArray;
   }
 
 
   // --- show google map ---
 
-  window.googleMarkerFilter = function(value, key) {
+  var googleMarkerFilter = function(facility) {
     // For search purpose
     return true;
   }
 
   function draw() {
     var map = initMap();
-    _.chain(window.facilities)
-      .pick(window.googleMarkerFilter)
-      .each(function (facility) {
-        var latlng = new google.maps.LatLng(facility.lat, facility.lng);
-        var marker = pointMarker(map, latlng);
+    facilities
+      .filter(googleMarkerFilter)
+      .forEach(function (facility) {
+        var marker = pointMarker(map, facility.lat, facility.lng);
         attachMessage(marker, contentToString(facility));
       });
   };
@@ -68,44 +71,36 @@
   }
 
   // point google marker
-  function pointMarker(map, latlng) {
+  function pointMarker(map, lat, lng) {
     return new google.maps.Marker({
-      position: latlng, // new google.maps.LatLng(float, float),
+      position: new google.maps.LatLng(lat, lng),
       map: map
     });
   }
 
   // show a content on google map marker if a marker clicked
   function attachMessage(googleMarker, content) {
-    google.maps.event.addListener(googleMarker, 'click', function(event) {
-      var infoWindow = new google.maps.InfoWindow({
-        content: content
-      })
+    google.maps.event.addListener(googleMarker, "click", function(event) {
+      // hide all info windows
+      for (let i = 0; i < facilityInfoWindows.length; i++) {
+        facilityInfoWindows[i].close();
+      }
+      facilityInfoWindows = [];
+
+      // attach and open info window
+      var infoWindow = new google.maps.InfoWindow({content: content})
       infoWindow.open(googleMarker.getMap(), googleMarker);
+
+      facilityInfoWindows.push(infoWindow);
     });
   };
 
-  var config = {
-    "name": "",
-    "address": "",
-    "tel": "Tel：",
-    "capacity": "定員：",
-    "min_age": "受け入れ年齢：",
-  };
-
   function contentToString(facility) {
-    var string = _.chain(facility)
-      .pick(function (value, key) {
-        return key in config;
-      })
-      .omit(function (value, key) {
-        return value === "";
-      })
-      .map(function (value, key) {
-        return "" + config[key] + value;
-      })
-      .value()
-      .join("<br>\n");
+    var string = 
+      facility.name + "<br>\n" +
+      "Tel：" + facility.tel + "<br>\n" +
+      "定員：" + facility.capacity + "<br>\n" +
+      "受け入れ年齢：" + facility.min_age + "<br>"
     return string;
   }
 }());
